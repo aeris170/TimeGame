@@ -1,0 +1,136 @@
+package cec.chronicles.popup.puzzle;
+
+import java.util.*;
+import javax.swing.*;
+
+import cec.chronicles.popup.AbstractCECPopup;
+import cec.chronicles.states.GameState;
+
+import java.awt.*;
+import java.awt.event.*;
+import java.io.*;
+import java.nio.charset.*;
+import java.nio.file.Paths;
+import java.nio.file.Files;
+
+/**
+ * Mistake finding puzzle
+ * 
+ * @author Faruk Oruç
+ * @version 11.5.2017
+ */
+public class FindMistakePuzzle extends AbstractCECPopup {
+   
+   private static final long serialVersionUID = -2091930587283119390L;
+   private JTextPane puzzlePane;
+   private Label answerCountLabel;
+   private String question;
+   private String text;
+   private int remainingAnswers;
+   
+   ArrayList<String> answerList;
+   
+   /**
+    * Constructor
+    * 
+    * @param frame
+    * @param filePath
+    */
+   public FindMistakePuzzle(JFrame frame, String filePath) {
+      super(frame);
+      try {
+         text = readFile(filePath, Charset.defaultCharset());
+      } catch (IOException e) {
+         e.printStackTrace();
+      }
+      splitText(text);
+      puzzlePane = new JTextPane();
+      puzzlePane.setEditable(false);
+      puzzlePane.setText(question);
+      puzzlePane.addMouseListener(new MyMouseListener());
+      puzzlePane.setFont((new Font("Consolas", Font.BOLD, 32)));
+      puzzlePane.setForeground(Color.white);
+      puzzlePane.setBackground(Color.black);
+      remainingAnswers = answerList.size();
+      answerCountLabel = new Label("Right answers left: " + remainingAnswers);
+      answerCountLabel.setFont((new Font("segoe ui", Font.PLAIN, 20)));
+      this.setLayout(new BorderLayout());
+      this.add(answerCountLabel, BorderLayout.NORTH);
+      this.add(puzzlePane, BorderLayout.SOUTH);
+      this.add(getDoneButton());
+   }
+   
+   /**
+    * Reads a text file and puts it in a String
+    * 
+    * @param path
+    * @param encoding
+    * @return String created from the text file read
+    * @throws IOException
+    */
+   private static String readFile(String path, Charset encoding) throws IOException {
+      byte[] encoded = Files.readAllBytes(Paths.get(path));
+      return new String(encoded, encoding);
+   }
+   
+   /**
+    * Enables the back button if the game is completed
+    */
+   public void checkCompletion() {
+      if (GameState.player.getPuzzleCompletion(5)) {
+         enableBackButton();
+      }
+   }
+   
+   public void showInstructions() {
+	   JOptionPane instructions;
+	      instructions = new JOptionPane(null);
+	      UIManager.put("OptionPane.messageFont", new Font("sugoi ui", Font.PLAIN, 14));
+	      UIManager.put("OptionPane.buttonFont", new Font("sugoi ui", Font.PLAIN, 12));
+	      instructions.showMessageDialog
+	         (null, "Professor cannot remember the last name of his beloved friend Dominic. It is "+"\nimpossible to find the right guy without knowing his last name! Hence, Professor" + "\nwrote an algorithm to scan through his notebook and print out all the numbers that" + "\nbelongs to a ‘Dominic’ to call them one by one. Unfortunately Professor says that his" + "\ncode won’t even compile. Can you help him and highlight the mistakes in the given" + "\ncode segment?"
+	             ,"Instructions", JOptionPane.WARNING_MESSAGE);
+   }
+   
+   /**
+    * Splits the text into questions and answers
+    * 
+    * @param txt
+    */
+   private void splitText(String txt) {
+      int answerIndex = txt.lastIndexOf("Answers:");
+      question = txt.substring(0, answerIndex);
+      String answers = txt.substring(answerIndex + 8);
+      
+      String[] answerArray = answers.split("-");
+      answerList = new ArrayList<String>(Arrays.asList(answerArray));
+   }
+   
+   private class MyMouseListener extends MouseAdapter {
+      
+      /*
+       * (non-Javadoc)
+       * 
+       * @see
+       * java.awt.event.MouseAdapter#mouseReleased(java.awt.event.MouseEvent)
+       */
+      public void mouseReleased(MouseEvent e) {
+         if (puzzlePane.getSelectedText() != null) {
+            String s = puzzlePane.getSelectedText();
+            
+            for (int i = 0; i < remainingAnswers; i++) {
+               if (s.equals(answerList.get(i))) {
+                  remainingAnswers--;
+                  answerList.remove(i);
+               }
+            }
+            if (remainingAnswers == 0) {
+               JOptionPane.showMessageDialog(null, "Thank much", "You WON!", JOptionPane.INFORMATION_MESSAGE);
+               GameState.player.completePuzzle(5);
+               enableBackButton();
+            }
+            answerCountLabel.setText("Right answers left: " + remainingAnswers);
+         }
+      }
+   }
+}

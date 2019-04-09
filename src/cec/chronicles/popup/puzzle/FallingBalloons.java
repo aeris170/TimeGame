@@ -1,0 +1,601 @@
+package cec.chronicles.popup.puzzle;
+
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.Timer;
+import javax.swing.UIManager;
+
+import cec.chronicles.input.ImageLoader;
+import cec.chronicles.popup.AbstractCECPopup;
+import cec.chronicles.states.GameState;
+
+/**
+ * Falling balloon puzzle
+ * 
+ * @author Pýnar Ayaz
+ * @version 07.5.2017
+ */
+
+public class FallingBalloons extends AbstractCECPopup {
+
+	private static final long serialVersionUID = -6965121200812207726L;
+	private BalloonsGamePanel panel;
+
+	public FallingBalloons(JFrame frame) {
+		super(frame);
+		panel = new BalloonsGamePanel();
+		add(panel);
+		add(getDoneButton());
+	}
+
+	public void showInstructions() {
+		JOptionPane instructions = new JOptionPane(null);
+		UIManager.put("OptionPane.messageFont", new Font("sugoi ui", Font.PLAIN, 14));
+		UIManager.put("OptionPane.buttonFont", new Font("sugoi ui", Font.PLAIN, 12));
+		final ImageIcon icon = new ImageIcon("/textures/playerR.png");
+		instructions.showMessageDialog(null,
+				"Professor doesn’t know anything about primitive data types or conventions of the Java "
+						+ "\nprogramming language. This is going to be a huge issue unless we fix it right away."
+						+ "\nWould you be so kind and catch some correctly written variables from the mysterious void?",
+				"Instructions", JOptionPane.INFORMATION_MESSAGE, icon);
+	}
+
+	/**
+	 * Checks if a puzzle has been completed before
+	 */
+	public void checkCompletion() {
+		if (GameState.player.getPuzzleCompletion(1)) {
+			enableBackButton();
+		}
+	}
+
+	public class ShapeContainer implements Iterable {
+
+		// properties
+		ArrayList<Shape> shapes;
+
+		// constructors
+		public ShapeContainer() {
+			shapes = new ArrayList<Shape>();
+		}
+
+		// methods
+		/**
+		 * adds shape into container
+		 * 
+		 * @param s
+		 *            The shape to be added
+		 */
+		public void add(Shape s) {
+			shapes.add(s);
+		}
+
+		/**
+		 * computes the total area of the shapes inside the container
+		 * 
+		 * @return total area
+		 */
+		public double getArea() {
+			double area;
+			area = 0.0;
+			for (int i = 0; i < shapes.size(); i++) {
+				area = area + shapes.get(i).getArea();
+			}
+			return area;
+		}
+
+		/**
+		 * @return the string representation of the container object
+		 */
+		public String toString() {
+			return shapes.toString();
+		}
+
+		/**
+		 * checks if the given coordinates has a shape, then sets the selected
+		 * status of the shape to true
+		 * 
+		 * @param x
+		 *            The x coordinate
+		 * @param y
+		 *            The y coordinate
+		 */
+		public int select(int x, int y) {
+			int temp = -1;
+			for (int i = 0; i < shapes.size(); i++) {
+				if (((Selectable) shapes.get(i)).contains(x, y) != null
+						&& (((Selectable) shapes.get(i)).getSelected() == false)) {
+					((Selectable) shapes.get(i)).setSelected(true);
+					temp = i;
+					break;
+				}
+			}
+			return temp;
+		}
+
+		/**
+		 * removes the shapes that have true as selected status
+		 */
+		public void remove() {
+			for (int i = 0; i < shapes.size(); i++) {
+				if (((Selectable) shapes.get(i)).getSelected() == true) {
+					shapes.remove(i);
+					i--;
+				}
+			}
+		}
+
+		/**
+		 * returns the number of shapes in the container
+		 * 
+		 * @return int size of container
+		 */
+		public int size() {
+			return shapes.size();
+		}
+
+		/**
+		 * returns the number of shapes found at the point x,y and sets the
+		 * selected property of those shapes to true
+		 * 
+		 * @param x
+		 *            - x coordinate
+		 * @param y
+		 *            - y coordinate
+		 * @return int numOfShapes - number of shapes at the point (x,y)
+		 */
+		public int selectAllAt(int x, int y) {
+			int numOfShapes;
+			numOfShapes = 0;
+			for (int i = 0; i < shapes.size(); i++) {
+				if (((Selectable) shapes.get(i)).contains(x, y) != null) {
+					((Selectable) shapes.get(i)).setSelected(true);
+					numOfShapes++;
+				}
+			}
+			return numOfShapes;
+		}
+
+		@Override
+		public Iterator iterator() {
+			return new ShapeContainerIterator();
+		}
+
+		/**
+		 * an inner class to implement iterator
+		 */
+		private class ShapeContainerIterator implements Iterator {
+			// properties
+			int index;
+
+			// constructors
+			public ShapeContainerIterator() {
+				index = 0;
+			}
+
+			// methods
+			@Override
+			public Shape next() {
+				if (this.hasNext()) {
+					Shape temp = shapes.get(index);
+					index++;
+					return temp;
+				} else {
+					return null;
+				}
+			}
+
+			@Override
+			public boolean hasNext() {
+				return (index != shapes.size());
+			}
+		}
+	}
+
+	public abstract class Shape implements Locatable {
+		// properties
+		int x;
+		int y;
+
+		// constructors
+		public Shape() {
+		}
+
+		// methods
+		/**
+		 * abstract getArea - implemented in subclasses of shape
+		 * 
+		 * @return The area of the shape
+		 */
+		public abstract double getArea();
+
+		/**
+		 * @return x coordinate of the shape
+		 */
+		public int getX() {
+			return x;
+		}
+
+		/**
+		 * @return y coordinate of the shape
+		 */
+		public int getY() {
+			return y;
+		}
+
+		/**
+		 * sets the location of the shape
+		 */
+		public void setLocation(int x, int y) {
+			this.x = x;
+			this.y = y;
+		}
+	}
+
+	public interface Selectable {
+		// properties
+
+		// constructors
+
+		// methods
+		public boolean getSelected();
+
+		public void setSelected(boolean selected);
+
+		public Shape contains(int x, int y);
+
+	}
+
+	public interface Locatable {
+		// properties
+
+		// constructors
+
+		// methods
+		public int getX();
+
+		public int getY();
+
+		public void setLocation(int x, int y);
+
+	}
+
+	public interface Drawable {
+		public void draw(Graphics g, String s);
+	}
+
+	public class Circle extends Shape implements Selectable {
+		// properties
+		int radius;
+		boolean selected;
+
+		// constructors
+		public Circle(int radius) {
+			super();
+			this.radius = radius;
+		}
+
+		// methods
+		/**
+		 * computes the area of the circle
+		 * 
+		 * @return the area of the cycle
+		 */
+		public double getArea() {
+			double area;
+			area = Math.PI * radius * radius;
+			return area;
+		}
+
+		/**
+		 * @return boolean the selected status
+		 */
+		public boolean getSelected() {
+			return selected;
+		}
+
+		/**
+		 * sets the selected status
+		 */
+		public void setSelected(boolean selected) {
+			this.selected = selected;
+		}
+
+		public Shape contains(int x, int y) {
+			if (Math.sqrt(
+					(x - this.getX()) * (x - this.getX()) + (y - this.getY()) * (y - this.getY())) <= this.radius) {
+				return this;
+			}
+			return null;
+		}
+
+		public String toString() {
+			return "Circle with area " + this.getArea() + " Selectable status: " + this.getSelected();
+		}
+
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	public class BalloonsGamePanel extends JPanel {
+		// properties
+		ShapeContainer balloons;
+		Timer timer;
+		TimerListener listener;
+		MyMouseListener mListener;
+		int x;
+		int y;
+		int balloonsClicked;
+		int points;
+		JLabel label;
+		int elapsedTime;
+		JOptionPane pane;
+		JOptionPane instructions;
+		// JButton button;
+		ArrayList<String> myStrings;
+		int cont;
+
+		// constructors
+		public BalloonsGamePanel() {
+			super();
+			balloons = new ShapeContainer();
+			listener = new TimerListener();
+			timer = new Timer(40, listener);
+
+			timer.start();
+			setPreferredSize(new Dimension(800, 800));
+
+			mListener = new MyMouseListener();
+			addMouseListener(mListener);
+
+			points = 0;
+			elapsedTime = 0;
+			pane = new JOptionPane(null);
+
+			// button = new JButton("RESTART");
+			// button.addActionListener(new RestartButtonListener());
+			// this.add(button);
+
+			label = new JLabel("POINTS: " + points + " ELAPSED TIME: " + (elapsedTime / 1000));
+			label.setForeground(Color.WHITE);
+			this.add(label);
+
+			this.setBackground(Color.BLACK);
+
+			// Strings
+			myStrings = new ArrayList<String>();
+			myStrings.add("string myString-");
+			myStrings.add("int number+");
+			myStrings.add("Int value-");
+			myStrings.add("char EnteredChar-");
+			myStrings.add("boolean check+");
+			myStrings.add("Double percentage-");
+			myStrings.add("String messageToUser+");
+			myStrings.add("number int-");
+			myStrings.add("boolean Test-");
+			myStrings.add("int age+");
+			myStrings.add("Char character-");
+			myStrings.add("char myCharacter+");
+			myStrings.add("final double TAX_RATE+");
+			myStrings.add("final String welcome_message-");
+			myStrings.add("final String HELLO+");
+			myStrings.add("final int CellWidth-");
+			myStrings.add("final int CellHeight-");
+			myStrings.add("final int Cell_Area-");
+			myStrings.add("final int Size-");
+			myStrings.add("final char A_RANDOM_CHAR+");
+			myStrings.add("final double DANGER_PERCENTAGE+");
+
+			for (int i = 0; i < 21; i++) {
+				x = (int) (Math.random() * 600);
+				y = (int) (Math.random() * 750);
+				Balloon b = new Balloon(x, y);
+				balloons.add(b);
+			}
+			cont = 0;
+		}
+
+		// methods
+		@Override
+		public void paintComponent(Graphics g) {
+			super.paintComponent(g);
+			Iterator itr = balloons.iterator();
+			int i = 0;
+			while (itr.hasNext()) {
+				try {
+					((Drawable) itr.next()).draw(g, myStrings.get(i));
+					i++;
+				} catch (Exception ex) {
+					break;
+				}
+			}
+		}
+
+		// inner classes
+		/**
+		 * an inner class to imlement action listener for the timer
+		 */
+		private class TimerListener implements ActionListener {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+
+				balloons.remove();
+				elapsedTime += 40;
+				Iterator itr = balloons.iterator();
+				while (itr.hasNext()) {
+					Balloon temp = (Balloon) (itr.next());
+					temp.fall();
+					if (temp.getY() > 800) {
+						temp.setLocation(temp.getX(), 0);
+					}
+				}
+
+				if (elapsedTime >= 600000) {
+					timer.stop();
+					int dat = pane.showConfirmDialog(null,
+							"How would you feel about another round of falling balloons? ;)", "FallingBalloonsAgain?",
+							JOptionPane.YES_NO_OPTION);
+					if (dat == 0) {
+						elapsedTime = 0;
+						points = 0;
+						for (int i = 0; i < 10; i++) {
+							x = (int) (Math.random() * 500);
+							y = (int) (Math.random() * 500);
+							Balloon b = new Balloon(x, y);
+							balloons.add(b);
+						}
+						timer.start();
+					} else {
+						System.exit(0);
+					}
+				}
+
+				label.setText("POINTS: " + points + " ELAPSED TIME: " + (elapsedTime / 1000));
+
+				repaint();
+			}
+		}
+
+		/**
+		 * an inner class to implement action listener for the timer
+		 */
+		private class MyMouseListener extends MouseAdapter {
+			@Override
+			public void mousePressed(MouseEvent e) {
+				int x;
+				int y;
+				x = e.getX();
+				y = e.getY();
+
+				balloonsClicked = balloons.select(x, y);
+
+				if (balloonsClicked != -1) {
+					if (myStrings.get(balloonsClicked).charAt(myStrings.get(balloonsClicked).length() - 1) == '-') {
+						points--;
+					} else {
+						points++;
+						cont++;
+					}
+					myStrings.remove(balloonsClicked);
+					if (cont == 9) {
+						timer.stop();
+						// WIN CONDITION TODO
+						JOptionPane.showMessageDialog(null, "Thank much", "You WON!", JOptionPane.INFORMATION_MESSAGE);
+						enableBackButton();
+						GameState.player.completePuzzle(1);
+					}
+				}
+			}
+		}
+
+		/**
+		 * an inner class to implement action listener for the button
+		 */
+		private class RestartButtonListener implements ActionListener {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				points = 0;
+				elapsedTime = 0;
+				for (int i = 0; i < Math.abs(balloons.size() - 25); i++) {
+					x = (int) (Math.random() * 750);
+					y = (int) (Math.random() * 800);
+					Balloon b = new Balloon(x, y);
+					balloons.add(b);
+				}
+
+			}
+		}
+
+	}
+
+	public class Balloon extends Circle implements Drawable {
+		// properties
+		int radius;
+
+		// constructors
+		public Balloon(int x, int y) {
+			super(10);
+			radius = 10;
+			setLocation(x, y);
+		}
+
+		// methods
+		@Override
+		public void draw(Graphics g, String s) {
+			Font font = new Font("Consolas", Font.PLAIN, 16);
+			g.setColor(Color.WHITE);
+			g.fillOval(getX() - radius, getY() - radius, 2 * radius, 2 * radius);
+
+			g.setFont(font);
+			g.drawString(s.substring(0, s.length() - 1), getX() + radius + 5, getY() + 5);
+		}
+
+		@Override
+		public Balloon contains(int x, int y) {
+			if ((getX() - x) * (getX() - x) + (getY() - y) * (getY() - y) <= radius * radius) {
+				return this;
+			} else {
+				return null;
+			}
+		}
+
+		/**
+		 * increases the radius of the balloon (Circle) by a fixed number of
+		 * units, up to a maximum size, say 100, at which point the circle
+		 * should be selected and the radius set to zero.
+		 */
+		public void grow() {
+			if (this.radius < 100) {
+				radius += 1;
+			} else {
+				radius = 0;
+				this.setSelected(true);
+			}
+		}
+
+		/**
+		 * move the balloon down
+		 */
+		public void fall() {
+			this.setLocation(getX(), getY() + 2);
+		}
+	}
+
+	/// TEST MAIN
+	public static void main(String[] args) {
+
+		// constants
+
+		// variables
+		JFrame frame;
+		BalloonsGamePanel panel;
+
+		// program code
+		frame = new JFrame("Balloons");
+		FallingBalloons game = new FallingBalloons(frame);
+		frame.add(game);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.pack();
+		frame.setResizable(false);
+		frame.setLocationRelativeTo(null);
+		frame.setVisible(true);
+
+	}
+}

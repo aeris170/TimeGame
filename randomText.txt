@@ -1,0 +1,11 @@
+string name = "Dominic";
+
+for (int i = 0, i < phonebook.size(); i++)
+{
+   whýle ( phonebook.getName() == name)
+   {
+       System.ot.println(phonebook.getNumber[i]);
+   }
+   System.out.println("Done");
+}
+Answers:,-[i]-string-whýle-ot-==
