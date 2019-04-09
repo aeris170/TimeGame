@@ -20,9 +20,8 @@ Project: Time(), is meant to be a side-scroller, adventure-puzzle game that woul
 ## Project: Time() Dev Team Members:
   * Lead Coder, Map Designer, Music Guy (Instruments): Doğa Oruç
   * Lead Artist, Lead Designer, Music Guy (Electronic): Kaan Ünlü
-  * ~~UI Coder/Designer: Ünsal Öztürk~~
-  * ~~Music Guy: Fark Oruç~~
-  * ~~Puzzles: Pınar Ayaz~~
+  * ~~UI Coder/Designer, Puzzle Designer: Ünsal Öztürk~~
+  * ~~Better Music Guy: Fark Oruç~~
 
 ## Screenshots:
 ![time_1](https://user-images.githubusercontent.com/25724155/55772292-4b824900-5a94-11e9-84e7-696af32a5042.png)
