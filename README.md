@@ -1,4 +1,5 @@
 # Project: Time(), version PRE-ALPHA v0.1
+![social](https://repository-images.githubusercontent.com/180282324/fa4c2b00-c0ff-11e9-8cbe-0ba7d1357a66)
 
 Project: Time(), is meant to be a side-scroller, adventure-puzzle game that would teach basic concepts of programming.
 
